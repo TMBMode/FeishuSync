@@ -1,0 +1,10 @@
+{
+  "name": "feishu-user-token-cli",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Minimal CLI to obtain a Feishu user_access_token",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  }
+}
