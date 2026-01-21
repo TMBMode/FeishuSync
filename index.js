@@ -103,7 +103,7 @@ function buildAuthUrl(clientId) {
   url.searchParams.set('client_id', clientId);
   url.searchParams.set('response_type', 'code');
   url.searchParams.set('redirect_uri', REDIRECT_URI);
-  url.searchParams.set('scope', 'offline_access');
+  url.searchParams.set('scope', 'docx:document docs:doc drive:drive offline_access wiki:wiki');
   return url.toString();
 }
 

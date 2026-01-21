@@ -5,6 +5,11 @@
   "description": "Minimal CLI to obtain a Feishu user_access_token",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "auth": "node index.js",
+    "doc": "node doc.js",
+    "md": "node md.js",
+    "download": "node download.js",
+    "upload": "node upload.js",
+    "list": "node list.js"
   }
 }
