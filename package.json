@@ -10,6 +10,7 @@
     "md": "node md.js",
     "download": "node download.js",
     "upload": "node upload.js",
-    "list": "node list.js"
+    "list": "node list.js",
+    "sync": "node sync.js"
   }
 }
