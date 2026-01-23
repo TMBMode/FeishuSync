@@ -1,12 +1,11 @@
-const http = require('http');
-const { URL } = require('url');
-const readline = require('readline');
-const fs = require('fs/promises');
-const { exec } = require('child_process');
+import http from 'node:http';
+import { URL } from 'node:url';
+import fs from 'node:fs/promises';
+import { exec } from 'node:child_process';
+import { readConfig, requireConfigValue, resolvePath } from './config.js';
 
 const PORT = 7777;
 const REDIRECT_URI = `http://localhost:${PORT}/callback`;
-const TOKEN_PATH = './user-token.txt';
 const AUTH_URL = 'https://accounts.feishu.cn/open-apis/authen/v1/authorize';
 const TOKEN_URL = 'https://open.feishu.cn/open-apis/authen/v2/oauth/token';
 
@@ -85,19 +84,6 @@ function createServer() {
   return server;
 }
 
-function ask(question) {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
-      rl.close();
-      resolve(answer.trim());
-    });
-  });
-}
-
 function buildAuthUrl(clientId) {
   const url = new URL(AUTH_URL);
   url.searchParams.set('client_id', clientId);
@@ -168,8 +154,8 @@ async function refreshUserAccessToken({ clientId, clientSecret, refreshToken }) 
   return data;
 }
 
-async function writeTokenFile(accessToken) {
-  await fs.writeFile(TOKEN_PATH, `${accessToken}\n`, 'utf8');
+async function writeTokenFile(tokenPath, accessToken) {
+  await fs.writeFile(tokenPath, `${accessToken}\n`, 'utf8');
 }
 
 function sleep(ms) {
@@ -177,13 +163,10 @@ function sleep(ms) {
 }
 
 async function main() {
-  const clientId = await ask('App ID: ');
-  const clientSecret = await ask('App Secret: ');
-
-  if (!clientId || !clientSecret) {
-    console.error('App ID and App Secret are required.');
-    process.exit(1);
-  }
+  const config = await readConfig();
+  const clientId = requireConfigValue(config, 'auth.clientId');
+  const clientSecret = requireConfigValue(config, 'auth.clientSecret');
+  const tokenPath = resolvePath(requireConfigValue(config, 'tokenPath'));
 
   const server = createServer();
   server.listen(PORT, () => {
@@ -237,7 +220,7 @@ async function main() {
         });
       }
 
-      await writeTokenFile(tokenData.access_token);
+      await writeTokenFile(tokenPath, tokenData.access_token);
 
       refreshToken = tokenData.refresh_token || null;
 

@@ -2,6 +2,7 @@
 AGENTS.md
 agent_docs/
 user-token.txt
+config.json
 # Logs
 logs
 *.log

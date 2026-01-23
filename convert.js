@@ -1,5 +1,5 @@
-const fs = require('fs/promises');
-const { feishuToMarkdown, markdownToFeishu } = require('./feishu-md');
+import fs from 'node:fs/promises';
+import { feishuToMarkdown, markdownToFeishu } from './api/feishu-md.js';
 
 async function readInput(path) {
   if (!path || path === '-') {
@@ -25,8 +25,8 @@ async function main() {
   const [mode, inputPath] = process.argv.slice(2);
 
   if (!mode || !['to-md', 'to-feishu'].includes(mode)) {
-    console.error('Usage: node md.js to-md <json-file|->');
-    console.error('       node md.js to-feishu <markdown-file|->');
+    console.error('Usage: npm run convert to-md <json-file|->');
+    console.error('       npm run convert to-feishu <markdown-file|->');
     process.exit(1);
   }
 

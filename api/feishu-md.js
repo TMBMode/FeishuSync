@@ -1,6 +1,6 @@
 const DEFAULT_ALIGN = 1;
 
-const BLOCK_TYPE = {
+export const BLOCK_TYPE = {
   page: 1,
   text: 2,
   heading1: 3,
@@ -375,7 +375,7 @@ function codeLanguageToMarkdown(language) {
   return mapping[language] || '';
 }
 
-function feishuToMarkdown(doc) {
+export function feishuToMarkdown(doc) {
   if (!doc || !Array.isArray(doc.blocks)) return '';
   const blockMap = new Map();
   for (const block of doc.blocks) {
@@ -511,7 +511,7 @@ function mergeElementsWithNewlines(lines) {
   return merged.length ? merged : [textRunElement('')];
 }
 
-function markdownToBlocks(markdown) {
+export function markdownToBlocks(markdown) {
   const lines = splitMarkdownLines(markdown);
   const blocks = [];
 
@@ -684,7 +684,7 @@ function markdownToBlocks(markdown) {
   return { title, blocks };
 }
 
-function inlineMarkdownToElements(text) {
+export function inlineMarkdownToElements(text) {
   return parseInlineMarkdown(text);
 }
 
@@ -844,7 +844,7 @@ function createBlock({
   return block;
 }
 
-function markdownToFeishu(markdown) {
+export function markdownToFeishu(markdown) {
   const lines = splitMarkdownLines(markdown);
   const blocks = [];
   let counter = 1;
@@ -1077,11 +1077,3 @@ function markdownToFeishu(markdown) {
 
   return { metadata, blocks };
 }
-
-module.exports = {
-  feishuToMarkdown,
-  markdownToFeishu,
-  markdownToBlocks,
-  inlineMarkdownToElements,
-  BLOCK_TYPE,
-};

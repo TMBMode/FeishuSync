@@ -1,6 +1,6 @@
 import { readConfig, requireConfigValue, resolvePath } from './config.js';
-import { readToken, sanitizeFilename } from './api/helpers.js';
-import { fetchDocumentMeta, downloadDocumentToFile } from './api/feishu.js';
+import { readToken } from './api/helpers.js';
+import { apiGet, fetchAllBlocks } from './api/feishu.js';
 
 if (typeof fetch !== 'function') {
   console.error('This CLI requires Node.js 18+ (global fetch).');
@@ -19,7 +19,7 @@ async function main() {
   const config = await readConfig();
   const docInput = process.argv[2];
   if (!docInput) {
-    console.error('Usage: npm run download <doc-url-or-id>');
+    console.error('Usage: npm run fetch <doc-url-or-id>');
     process.exit(1);
   }
   const tokenPath = resolvePath(requireConfigValue(config, 'tokenPath'));
@@ -27,20 +27,16 @@ async function main() {
   const documentId = extractDocumentId(docInput);
   const token = await readToken(tokenPath);
 
-  const metadata = await fetchDocumentMeta(documentId, token);
-  const title = metadata.title || documentId;
-  const filename = `${sanitizeFilename(title) || documentId}.md`;
-  await downloadDocumentToFile(
-    documentId,
-    token,
-    {
-      document_id: documentId,
-      revision_id: metadata.revision_id ?? metadata.revisionId ?? null,
-      title,
-    },
-    filename
-  );
-  console.log(`Saved ${filename}`);
+  const documentInfo = await apiGet(`/docx/v1/documents/${documentId}`, token);
+  const metadata = documentInfo.document || documentInfo;
+  const blocks = await fetchAllBlocks(documentId, token);
+
+  const output = {
+    metadata,
+    blocks,
+  };
+
+  console.log(JSON.stringify(output, null, 2));
 }
 
 main().catch((err) => {
