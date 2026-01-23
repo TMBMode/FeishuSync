@@ -607,10 +607,37 @@ export function createChangeProcessor({
       const entry = manifestDocs[docId];
       const title = meta.title || entry?.title || '';
       const revisionId = meta.revision_id ?? meta.revisionId ?? entry?.revisionId ?? null;
+      const baseName = sanitizeFilename(title) || docId;
+      const desiredName = `${baseName}.md`;
       let fileRel = entry?.file;
+      const renameCandidates = new Set(usedPaths);
+      if (fileRel) {
+        renameCandidates.delete(fileRel);
+      }
+      const desiredRel = await ensureUniqueFilePathWithFs(
+        rootDir,
+        desiredName,
+        renameCandidates
+      );
       if (!fileRel) {
-        const baseName = sanitizeFilename(title) || docId;
-        fileRel = await ensureUniqueFilePathWithFs(rootDir, `${baseName}.md`, usedPaths);
+        fileRel = desiredRel;
+      } else if (desiredRel && desiredRel !== fileRel) {
+        const oldRel = fileRel;
+        const oldAbs = path.join(rootDir, oldRel);
+        const newAbs = path.join(rootDir, desiredRel);
+        if (await fileExists(oldAbs)) {
+          await fs.rename(oldAbs, newAbs);
+        }
+        fileRel = desiredRel;
+        usedPaths.delete(oldRel);
+        usedPaths.add(fileRel);
+        fileToDoc.delete(oldRel);
+        fileToDoc.set(fileRel, docId);
+        localBatch.delete(oldRel);
+        if (entry) {
+          entry.file = fileRel;
+        }
+        manifestDirty = true;
       }
       localBatch.delete(fileRel);
 

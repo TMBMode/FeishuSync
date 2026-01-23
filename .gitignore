@@ -3,6 +3,7 @@ AGENTS.md
 agent_docs/
 user-token.txt
 config.json
+wikid/
 # Logs
 logs
 *.log

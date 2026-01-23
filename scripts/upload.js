@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
-import { readConfig, requireConfigValue, resolvePath } from './config.js';
-import { readToken } from './api/helpers.js';
-import { createDocumentFromMarkdown } from './api/feishu.js';
+import { readConfig, requireConfigValue, resolvePath } from '../config.js';
+import { readToken } from '../api/helpers.js';
+import { createDocumentFromMarkdown } from '../api/feishu.js';
 
 if (typeof fetch !== 'function') {
   console.error('This CLI requires Node.js 18+ (global fetch).');

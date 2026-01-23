@@ -51,10 +51,13 @@ export async function writeManifest(folder, manifest, manifestName) {
 }
 
 export function sanitizeFilename(name) {
-  return name
-    .replace(/[\\/\n\r\t\0]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
+  return String(name || '')
+    .normalize('NFKC')
+    .replace(/[\u0000-\u001F\u007F]/g, '')
+    .replace(/[<>:"/\\|?*]/g, '-')
+    .replace(/[\s\p{Z}]+/gu, '-')
+    .replace(/-+/g, '-')
+    .replace(/^[-.]+|[-.]+$/g, '')
     .slice(0, 80);
 }
 
@@ -77,7 +80,6 @@ export function resolveSyncFolder(folderInput) {
 }
 
 export function pickAppCredentials(config) {
-  const realtime = config.realtime || {};
   const auth = config.auth || {};
   const appId =
     process.env.FEISHU_APP_ID ||

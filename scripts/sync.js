@@ -3,7 +3,7 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import Lark from '@larksuiteoapi/node-sdk';
-import { readConfig, requireConfigValue, resolvePath } from './config.js';
+import { readConfig, requireConfigValue, resolvePath } from '../config.js';
 import {
   readToken,
   readManifest,
@@ -13,12 +13,12 @@ import {
   normalizeFileTypes,
   startLocalWatcher,
   resolveFileType,
-} from './api/helpers.js';
+} from '../api/helpers.js';
 import {
   subscribeToDocEvents,
   createChangeProcessor,
   syncNewDocsFromWiki,
-} from './api/feishu.js';
+} from '../api/feishu.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,19 +28,27 @@ if (typeof fetch !== 'function') {
   process.exit(1);
 }
 
+const SYNC_DEFAULTS = {
+  manifestName: '.feishu-sync.json',
+  logEvents: false,
+  loggerLevel: 'info',
+  debounceMs: 3000,
+  dedupeWindowMs: 600000,
+  localIgnoreWindowMs: 2000,
+  fileTypes: ['doc', 'docx'],
+  subscribeEvents: true,
+  eventTypes: [
+    'drive.file.created_in_folder_v1',
+    'drive.file.edit_v1',
+    'drive.file.title_updated_v1',
+    'drive.file.trashed_v1',
+  ],
+};
+
 function requireBoolean(config, keyPath) {
   const value = requireConfigValue(config, keyPath);
   if (typeof value !== 'boolean') {
     throw new Error(`Expected ${keyPath} to be a boolean in config.json.`);
-  }
-  return value;
-}
-
-function requireNonNegativeNumber(config, keyPath) {
-  const raw = requireConfigValue(config, keyPath);
-  const value = Number(raw);
-  if (!Number.isFinite(value) || value < 0) {
-    throw new Error(`Expected ${keyPath} to be a non-negative number in config.json.`);
   }
   return value;
 }
@@ -54,44 +62,27 @@ function requirePositiveNumber(config, keyPath) {
   return value;
 }
 
-function requireNonEmptyArray(config, keyPath) {
-  const value = requireConfigValue(config, keyPath);
-  if (!Array.isArray(value) || value.length === 0) {
-    throw new Error(`Expected ${keyPath} to be a non-empty array in config.json.`);
-  }
-  return value;
-}
-
 async function main() {
   const config = await readConfig();
   const tokenPath = resolvePath(requireConfigValue(config, 'tokenPath'));
   const spaceId = requireConfigValue(config, 'wikiSpaceId');
   const folderInput = requireConfigValue(config, 'sync.folderPath');
-  const manifestName = requireConfigValue(config, 'sync.manifestName');
+  const manifestName = SYNC_DEFAULTS.manifestName;
   const rootDir = resolveSyncFolder(folderInput);
   await fs.mkdir(rootDir, { recursive: true });
   const token = await readToken(tokenPath);
 
-  const realtime = requireConfigValue(config, 'realtime');
-  if (!realtime || typeof realtime !== 'object') {
-    throw new Error('Expected realtime to be an object in config.json.');
-  }
   const { appId, appSecret } = pickAppCredentials(config);
 
-  const debounceMs = requireNonNegativeNumber(config, 'realtime.debounceMs');
-  const dedupeWindowMs = requireNonNegativeNumber(config, 'realtime.dedupeWindowMs');
-  const localIgnoreWindowMs = requireNonNegativeNumber(
-    config,
-    'realtime.localIgnoreWindowMs'
-  );
-  const logEvents = requireBoolean(config, 'realtime.logEvents');
-  const fileTypes = normalizeFileTypes(
-    requireNonEmptyArray(config, 'realtime.fileTypes')
-  );
-  const subscribeEvents = requireBoolean(config, 'realtime.subscribeEvents');
+  const debounceMs = SYNC_DEFAULTS.debounceMs;
+  const dedupeWindowMs = SYNC_DEFAULTS.dedupeWindowMs;
+  const localIgnoreWindowMs = SYNC_DEFAULTS.localIgnoreWindowMs;
+  const logEvents = SYNC_DEFAULTS.logEvents;
+  const fileTypes = normalizeFileTypes(SYNC_DEFAULTS.fileTypes);
+  const subscribeEvents = SYNC_DEFAULTS.subscribeEvents;
   const pollIntervalSecondsRaw = requireConfigValue(
     config,
-    'realtime.pollIntervalSeconds'
+    'sync.pollIntervalSeconds'
   );
   const pollDisabled =
     pollIntervalSecondsRaw === false ||
@@ -99,15 +90,15 @@ async function main() {
     pollIntervalSecondsRaw === '0';
   const pollIntervalSeconds = pollDisabled
     ? 0
-    : requirePositiveNumber(config, 'realtime.pollIntervalSeconds');
+    : requirePositiveNumber(config, 'sync.pollIntervalSeconds');
 
-  const eventTypes = requireNonEmptyArray(config, 'realtime.eventTypes');
+  const eventTypes = SYNC_DEFAULTS.eventTypes;
 
   const loggerLevel = normalizeLoggerLevel(
-    requireConfigValue(config, 'realtime.loggerLevel'),
+    SYNC_DEFAULTS.loggerLevel,
     Lark.LoggerLevel
   );
-  const initialSync = requireBoolean(config, 'realtime.initialSync');
+  const initialSync = requireBoolean(config, 'sync.initialSync');
 
   let ignoreLocalChanges = false;
   const subscribedDocs = new Set();
@@ -142,10 +133,10 @@ async function main() {
     }
   };
 
-  const runFullSync = (reason) =>
-    new Promise((resolve) => {
-      const reasonText = reason ? ` (${reason})` : '';
-      console.log(`[realtime-sync] running full sync${reasonText}`);
+  const runFullSync = async (reason) => {
+    const reasonText = reason ? ` (${reason})` : '';
+    console.log(`[realtime-sync] running full sync${reasonText}`);
+    const result = await new Promise((resolve) => {
       const child = spawn(process.execPath, [path.join(__dirname, 'update.js')], {
         stdio: 'inherit',
       });
@@ -153,14 +144,18 @@ async function main() {
         console.error(`[realtime-sync] full sync failed: ${err.message || err}`);
       });
       child.on('exit', (code, signal) => {
-        const status =
-          code === 0
-            ? 'completed'
-            : `failed (code ${code ?? 'unknown'}, signal ${signal ?? 'none'})`;
-        console.log(`[realtime-sync] full sync ${status}`);
-        resolve();
+        resolve({ code, signal });
       });
     });
+    const status =
+      result.code === 0
+        ? 'completed'
+        : `failed (code ${result.code ?? 'unknown'}, signal ${result.signal ?? 'none'})`;
+    console.log(`[realtime-sync] full sync ${status}`);
+    if (result.code === 0) {
+      await subscribeManifestDocs();
+    }
+  };
 
   const pollForNewDocs = async () => {
     ignoreLocalChanges = true;

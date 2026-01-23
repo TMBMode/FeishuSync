@@ -1,0 +1,13 @@
+{
+  "tokenPath": "./user-token.txt",
+  "wikiSpaceId": "1234567890",
+  "auth": {
+    "clientId": "cli_abc123",
+    "clientSecret": "abcABC123"
+  },
+  "sync": {
+    "folderPath": "wikid",
+    "pollIntervalSeconds": 30,
+    "initialSync": true
+  }
+}

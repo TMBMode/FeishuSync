@@ -2,7 +2,7 @@ import http from 'node:http';
 import { URL } from 'node:url';
 import fs from 'node:fs/promises';
 import { exec } from 'node:child_process';
-import { readConfig, requireConfigValue, resolvePath } from './config.js';
+import { readConfig, requireConfigValue, resolvePath } from '../config.js';
 
 const PORT = 7777;
 const REDIRECT_URI = `http://localhost:${PORT}/callback`;

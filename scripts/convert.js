@@ -1,5 +1,5 @@
 import fs from 'node:fs/promises';
-import { feishuToMarkdown, markdownToFeishu } from './api/feishu-md.js';
+import { feishuToMarkdown, markdownToFeishu } from '../api/feishu-md.js';
 
 async function readInput(path) {
   if (!path || path === '-') {

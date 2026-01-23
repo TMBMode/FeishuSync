@@ -1,21 +1,23 @@
 {
-  "name": "feishu-user-token-cli",
-  "version": "0.1.0",
+  "name": "feishu-fs",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Minimal CLI to obtain a Feishu user_access_token",
-  "main": "auth.js",
+  "description": "Feishu documents bridge",
+  "main": "scripts/auth.js",
   "dependencies": {
     "@larksuiteoapi/node-sdk": "^1.56.1"
   },
   "scripts": {
-    "auth": "node auth.js",
-    "fetch": "node fetch.js",
-    "convert": "node convert.js",
-    "download": "node download.js",
-    "upload": "node upload.js",
-    "list": "node list.js",
-    "update": "node update.js",
-    "sync": "node sync.js"
+    "auth": "node scripts/auth.js",
+    "fetch": "node scripts/fetch.js",
+    "convert": "node scripts/convert.js",
+    "download": "node scripts/download.js",
+    "upload": "node scripts/upload.js",
+    "list": "node scripts/list.js",
+    "update": "node scripts/update.js",
+    "sync": "node scripts/sync.js",
+    "start": "node index.js start",
+    "stop": "node index.js stop"
   }
 }

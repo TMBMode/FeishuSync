@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { readConfig, requireConfigValue, resolvePath } from './config.js';
+import { readConfig, requireConfigValue, resolvePath } from '../config.js';
 import {
   readToken,
   hashFile,
@@ -11,7 +11,7 @@ import {
   ensureUniqueFilePath,
   buildConflictPath,
   resolveFileType,
-} from './api/helpers.js';
+} from '../api/helpers.js';
 import {
   deleteRemoteDocument,
   collectWikiDocNodes,
@@ -19,12 +19,14 @@ import {
   downloadDocumentToFile,
   uploadMarkdownToDocument,
   createDocumentFromMarkdown,
-} from './api/feishu.js';
+} from '../api/feishu.js';
 
 if (typeof fetch !== 'function') {
   console.error('This CLI requires Node.js 18+ (global fetch).');
   process.exit(1);
 }
+
+const MANIFEST_NAME = '.feishu-sync.json';
 
 function expandHomeDir(inputPath) {
   if (!inputPath) return inputPath;
@@ -82,7 +84,7 @@ async function main() {
   const config = await readConfig();
   const spaceId = requireConfigValue(config, 'wikiSpaceId');
   const folderInput = requireConfigValue(config, 'sync.folderPath');
-  const manifestName = requireConfigValue(config, 'sync.manifestName');
+  const manifestName = MANIFEST_NAME;
   const tokenPath = resolvePath(requireConfigValue(config, 'tokenPath'));
 
   const resolvedFolder = path.resolve(expandHomeDir(folderInput));
@@ -132,10 +134,36 @@ async function main() {
 
   for (const doc of remoteDocs) {
     const existing = manifestDocs[doc.documentId];
+    const baseName = sanitizeFilename(doc.title) || doc.documentId;
+    const desiredName = `${baseName}.md`;
     let fileRel = existing?.file;
+    const renameCandidates = new Set(usedPaths);
+    if (fileRel) {
+      renameCandidates.delete(fileRel);
+    }
+    const desiredRel = await ensureUniqueFilePath(
+      resolvedFolder,
+      desiredName,
+      renameCandidates
+    );
     if (!fileRel) {
-      const baseName = sanitizeFilename(doc.title) || doc.documentId;
-      fileRel = await ensureUniqueFilePath(resolvedFolder, `${baseName}.md`, usedPaths);
+      fileRel = desiredRel;
+    } else if (desiredRel && desiredRel !== fileRel) {
+      const oldRel = fileRel;
+      const oldInfo = localMap.get(oldRel);
+      const oldAbs = path.join(resolvedFolder, oldRel);
+      const newAbs = path.join(resolvedFolder, desiredRel);
+      if (oldInfo) {
+        await fs.rename(oldAbs, newAbs);
+        localMap.delete(oldRel);
+        localMap.set(desiredRel, { ...oldInfo, relPath: desiredRel, fullPath: newAbs });
+      }
+      usedPaths.delete(oldRel);
+      usedPaths.add(desiredRel);
+      fileRel = desiredRel;
+      if (existing) {
+        existing.file = fileRel;
+      }
     }
 
     const fileAbs = path.join(resolvedFolder, fileRel);
