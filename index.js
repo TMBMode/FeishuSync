@@ -7,8 +7,8 @@ import { readConfig, requireConfigValue, resolvePath } from './config.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const AUTH_PID = path.join(__dirname, '.feishu-fs-auth.pid');
-const SYNC_PID = path.join(__dirname, '.feishu-fs-sync.pid');
+const AUTH_PID = path.join(__dirname, '.feishu-sync-auth.pid');
+const SYNC_PID = path.join(__dirname, '.feishu-sync.pid');
 
 function isProcessAlive(pid) {
   if (!pid) return false;

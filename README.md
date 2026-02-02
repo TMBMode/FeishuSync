@@ -1,6 +1,6 @@
-# Feishu FS
+# FeishuSync
 
-Feishu FS is a CLI tool that bridges Feishu Docs/Wiki with a local folder. It can authenticate a user, fetch and convert documents, and keep a wiki space in sync with Markdown files on disk.
+FeishuSync is a CLI tool that bridges Feishu Docs/Wiki with a local folder. It can authenticate a user, fetch and convert documents, and keep a wiki space in sync with Markdown files on disk.
 
 ## Requirements
 - Node.js 18+ (uses the global `fetch` API)
